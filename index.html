@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cikgu Astig Pro: Final Visuals</title>
+    <title>Cikgu Astig Pro: 5 Types</title>
     <style>
         :root { --primary: #0f766e; --accent: #0ea5e9; --bg: #f0fdfa; --text: #134e4a; --card: #ffffff; }
         body {
@@ -38,6 +38,7 @@
         .control-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
         input[type=range] { width: 100%; accent-color: var(--accent); }
         input[type=number] { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 60px; text-align: center; }
+        select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; width: 100%; font-size: 0.9rem; }
         .result-box { background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; color: var(--primary); margin-top: 10px; border: 1px dashed #cbd5e1; }
         canvas { width: 100%; height: 200px; background: white; border-radius: 8px; border: 1px solid #e2e8f0; touch-action: none; }
 
@@ -46,6 +47,7 @@
         .sturm-top { flex: 2; background: #fff; border: 1px solid #ddd; border-radius: 8px; position: relative; overflow: hidden; min-height: 250px; }
         .sturm-bottom { flex: 1; background: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; min-height: 120px; }
         .patient-img { font-size: 60px; color: white; font-family: serif; filter: blur(0px); transition: filter 0.1s; }
+        
         .zoom-controls { position: absolute; bottom: 10px; left: 10px; display: flex; gap: 5px; }
         .zoom-btn { background: rgba(0,0,0,0.1); border: 1px solid #ccc; width: 30px; height: 30px; border-radius: 4px; cursor: pointer; font-weight: bold; color: #333; }
         .zoom-btn:active { background: #ddd; }
@@ -54,6 +56,9 @@
         .rx-display { display: flex; gap: 10px; margin-bottom: 10px; }
         .rx-item { flex: 1; background: #eff6ff; padding: 8px; border-radius: 6px; border: 1px solid #bfdbfe; text-align: center; font-size: 0.8rem; }
         .rx-item b { display: block; color: #1e40af; margin-bottom: 2px; font-size: 0.7rem; }
+        
+        /* Slider Labels */
+        .slider-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; font-weight: 600; margin-top: -5px; }
 
     </style>
 </head>
@@ -77,7 +82,7 @@
             </div>
             <div class="menu-card" onclick="nav('pageSturm', 'Interval of Sturm')">
                 <div class="menu-icon">🎯</div>
-                <div><h3>Conoid Simulation</h3><p>Collapse to Point Focus</p></div>
+                <div><h3>Conoid Simulation</h3><p>5 Types & Collapse</p></div>
             </div>
             <div class="card" style="margin-top:10px;">
                 <h3>Patient Profile</h3>
@@ -133,25 +138,37 @@
         </div>
 
         <div class="card">
-            <h3>Correction Simulator</h3>
+            <h3>Diagnostic Simulator</h3>
             
+            <div class="control-row">
+                <label>Scenario:</label>
+                <select id="sturmSelect" style="width:150px;">
+                    <option value="SMA">Simple Myopic</option>
+                    <option value="CMA">Compound Myopic</option>
+                    <option value="MIX">Mixed Astigmatism</option>
+                    <option value="SHA">Simple Hyperopic</option>
+                    <option value="CHA">Compound Hyperopic</option>
+                </select>
+            </div>
+
             <div class="rx-display">
                 <div class="rx-item">
-                    <b>Minus Cyl Form</b>
-                    +1.50 / -3.00 x 180
+                    <b>Minus Cyl</b>
+                    <span id="rxMinus">-</span>
                 </div>
                 <div class="rx-item">
-                    <b>Plus Cyl Form</b>
-                    -1.50 / +3.00 x 90
+                    <b>Plus Cyl</b>
+                    <span id="rxPlus">-</span>
                 </div>
             </div>
 
-            <div class="control-row">
-                <label>Collapse</label>
-                <span id="corrPct" style="font-weight:bold; color:#059669;">0%</span>
+            <div style="margin-top:15px;">
+                <input type="range" id="sliderCollapse" min="0" max="100" step="1" value="0">
+                <div class="slider-labels">
+                    <span>Uncorrected</span>
+                    <span>Corrected</span>
+                </div>
             </div>
-            <input type="range" id="sliderCollapse" min="0" max="100" step="1" value="0">
-            <div class="result-box" id="sturmStatus" style="font-size:0.9rem;">Mixed Astigmatism</div>
         </div>
     </div>
 <script>
@@ -201,7 +218,7 @@
         ctx.fillStyle = "#2563eb"; ctx.fillText((a===180?p1:p2).toFixed(2) + " D", cx+70, cy);
     }
 
-    // --- 2. RAY DIAGRAM (Visual Tweak) ---
+    // --- 2. RAY DIAGRAM ---
     const rayUi = { s: document.getElementById('sliderSphRay'), c: document.getElementById('sliderCylRay'), label: document.getElementById('astigType') };
     rayUi.s.addEventListener('input', updateRayDiagram); rayUi.c.addEventListener('input', updateRayDiagram);
     function updateRayDiagram() {
@@ -229,16 +246,14 @@
         
         let xRed = retinaX - (pRed * 30); let xBlue = retinaX - (pBlue * 30);
         
-        // Red (Vertical Line)
         ctx.beginPath(); ctx.moveTo(lensX, cy-30); ctx.lineTo(xRed, cy); ctx.moveTo(lensX, cy+30); ctx.lineTo(xRed, cy);
         ctx.strokeStyle = "rgba(220, 38, 38, 0.4)"; ctx.lineWidth = 2; ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(xRed, cy-15); ctx.lineTo(xRed, cy+15); // VERTICAL
+        ctx.beginPath(); ctx.moveTo(xRed, cy-15); ctx.lineTo(xRed, cy+15); 
         ctx.strokeStyle = "red"; ctx.lineWidth = 4; ctx.stroke();
         
-        // Blue (Horizontal Line)
         ctx.beginPath(); ctx.moveTo(lensX, cy-20); ctx.lineTo(xBlue, cy); ctx.moveTo(lensX, cy+20); ctx.lineTo(xBlue, cy);
         ctx.strokeStyle = "rgba(37, 99, 235, 0.4)"; ctx.lineWidth = 2; ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(xBlue-15, cy); ctx.lineTo(xBlue+15, cy); // HORIZONTAL
+        ctx.beginPath(); ctx.moveTo(xBlue-15, cy); ctx.lineTo(xBlue+15, cy);
         ctx.strokeStyle = "blue"; ctx.lineWidth = 4; ctx.stroke();
         
         ctx.beginPath(); ctx.moveTo(xRed, cy+25); ctx.lineTo(xBlue, cy+25);
@@ -246,10 +261,19 @@
         ctx.fillText("Interval", (xRed+xBlue)/2 - 20, cy+40);
     }
 
-    // --- 3. STURM CONOID (Clean & Collapse) ---
-    const sturmUi = { slider: document.getElementById('sliderCollapse'), pct: document.getElementById('corrPct'), status: document.getElementById('sturmStatus'), patient: document.getElementById('patientView') };
+    // --- 3. STURM CONOID (5 TYPES) ---
+    const sturmUi = { 
+        slider: document.getElementById('sliderCollapse'), 
+        select: document.getElementById('sturmSelect'),
+        patient: document.getElementById('patientView'),
+        rxMinus: document.getElementById('rxMinus'),
+        rxPlus: document.getElementById('rxPlus')
+    };
     let sturmCam = { x: 0, y: 0, z: 1.0 }; let isDragging = false; let lastX = 0;
+    
     sturmUi.slider.addEventListener('input', updateSturm);
+    sturmUi.select.addEventListener('change', updateSturm);
+
     function zoomSturm(amount) { sturmCam.z += amount; if(sturmCam.z < 0.5) sturmCam.z=0.5; if(sturmCam.z > 3.0) sturmCam.z=3.0; updateSturm(); }
     function resetSturmCam() { sturmCam = {x:0, y:0, z:1.0}; updateSturm(); }
     const sc = document.getElementById('canvasSturm');
@@ -258,34 +282,58 @@
     sc.addEventListener('pointerup', e => { isDragging=false; });
 
     function updateSturm() {
-        let pct = parseInt(sturmUi.slider.value);
-        sturmUi.pct.innerText = pct + "%";
+        let pct = parseInt(sturmUi.slider.value) / 100; // 0.0 to 1.0
+        let type = sturmUi.select.value;
+        let retinaX = 300; 
         
-        // Mixed Astigmatism Scenario: +1.50 DS / -3.00 DC
-        // Uncorrected: Red at +1.50 (Behind), Blue at -1.50 (Front). Gap 3.00.
-        // Full Correct: Both at 0 (Retina).
-        
-        let maxShift = 50; // px shift for 1.50D
-        let shift = maxShift * (1 - pct/100);
-        
-        let retinaX = 300;
-        let redX = retinaX + shift;  // Starts behind (+), moves to retina
-        let blueX = retinaX - shift; // Starts front (-), moves to retina
-        let clcX = retinaX; 
-        let clcRadius = (shift / 10); // Shrinks
+        // Define Scenarios (Distances from Retina)
+        // Values: Negative = Behind Retina (Hyperopic), Positive = Front (Myopic)
+        let gap = 60; 
+        let startRed = 0, startBlue = 0;
+        let rxM = "", rxP = "";
 
-        let blurAmount = shift / 10;
-        sturmUi.patient.style.filter = `blur(${blurAmount}px)`;
-        
-        if(pct === 100) {
-            sturmUi.status.innerText = "Status: Fully Corrected (Point Focus)";
-            sturmUi.status.style.color = "#16a34a";
-        } else {
-            sturmUi.status.innerText = "Status: Mixed Astigmatism";
-            sturmUi.status.style.color = "#dc2626";
+        // WTR Assumption: Red (Vertical) is Steeper (More Myopic/Front) than Blue
+        switch(type) {
+            case "SMA": // Simple Myopic: Red@Front, Blue@Retina
+                startRed = gap; startBlue = 0;
+                rxM = "pl / -2.00 x 180"; rxP = "-2.00 / +2.00 x 90";
+                break;
+            case "CMA": // Compound Myopic: Red@Front++, Blue@Front
+                startRed = gap * 1.5; startBlue = gap * 0.5;
+                rxM = "-1.00 / -2.00 x 180"; rxP = "-3.00 / +2.00 x 90";
+                break;
+            case "MIX": // Mixed: Red@Front, Blue@Behind
+                startRed = gap * 0.5; startBlue = -gap * 0.5;
+                rxM = "+1.00 / -2.00 x 180"; rxP = "-1.00 / +2.00 x 90";
+                break;
+            case "SHA": // Simple Hyperopic: Red@Retina, Blue@Behind
+                startRed = 0; startBlue = -gap;
+                rxM = "+2.00 / -2.00 x 180"; rxP = "pl / +2.00 x 90";
+                break;
+            case "CHA": // Compound Hyperopic: Red@Behind, Blue@Behind++
+                startRed = -gap * 0.5; startBlue = -gap * 1.5;
+                rxM = "+3.00 / -2.00 x 180"; rxP = "+1.00 / +2.00 x 90";
+                break;
         }
 
-        drawSturmScene(redX, blueX, clcX, clcRadius, pct);
+        sturmUi.rxMinus.innerText = rxM;
+        sturmUi.rxPlus.innerText = rxP;
+
+        // Animate towards Retina (0)
+        // Current Pos = Start * (1 - pct) -> Moves to 0
+        let curRed = startRed * (1 - pct);
+        let curBlue = startBlue * (1 - pct);
+
+        let rX = retinaX - curRed; 
+        let bX = retinaX - curBlue;
+        let cX = (rX + bX) / 2;
+        let cRadius = Math.abs(rX - bX) / 10;
+
+        // Blur vision
+        let blurAmount = Math.abs(rX - bX) / 15;
+        sturmUi.patient.style.filter = `blur(${blurAmount}px)`;
+
+        drawSturmScene(rX, bX, cX, cRadius, pct);
     }
 
     function drawSturmScene(rx, bx, cx, cr, pct) {
@@ -300,15 +348,14 @@
         ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(600, cy);
         ctx.strokeStyle = "#cbd5e1"; ctx.stroke();
 
-        // Rays (Only draw focal rays, removed faint cone)
+        // Rays (Focal Only)
         ctx.beginPath(); ctx.moveTo(lensX, cy-30); ctx.lineTo(rx, cy); ctx.moveTo(lensX, cy+30); ctx.lineTo(rx, cy);
         ctx.strokeStyle = "rgba(220,38,38,0.3)"; ctx.stroke();
-        
         ctx.beginPath(); ctx.moveTo(lensX, cy-20); ctx.lineTo(bx, cy); ctx.moveTo(lensX, cy+20); ctx.lineTo(bx, cy);
         ctx.strokeStyle = "rgba(37,99,235,0.3)"; ctx.stroke();
 
-        if (pct >= 99) {
-            // SINGLE POINT (Green)
+        if (pct >= 0.99) {
+            // GREEN POINT
             ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI*2);
             ctx.fillStyle = "#16a34a"; ctx.fill(); 
             ctx.font = "bold 12px Arial"; ctx.fillText("Point Focus", cx-30, cy-15);
@@ -321,16 +368,15 @@
             ctx.beginPath(); ctx.moveTo(bx-20, cy); ctx.lineTo(bx+20, cy);
             ctx.strokeStyle = "blue"; ctx.lineWidth = 3; ctx.stroke();
 
-            // CLC (Small Purple)
+            // CLC
             ctx.beginPath(); ctx.arc(cx, cy, Math.max(3, cr), 0, Math.PI*2);
             ctx.fillStyle = "rgba(128, 0, 128, 0.5)"; ctx.fill();
-            ctx.font = "10px Arial"; ctx.fillText("CLC", cx-10, cy+cr+15);
         }
         
         // Retina
-        ctx.beginPath(); ctx.moveTo(cx, cy-60); ctx.lineTo(cx, cy+60);
+        ctx.beginPath(); ctx.moveTo(300, cy-60); ctx.lineTo(300, cy+60);
         ctx.strokeStyle = "#333"; ctx.lineWidth = 1; ctx.setLineDash([2,2]); ctx.stroke();
-        ctx.fillStyle = "#333"; ctx.fillText("Retina", cx-15, cy+70);
+        ctx.fillStyle = "#333"; ctx.fillText("Retina", 285, cy+70);
 
         ctx.restore();
     }
